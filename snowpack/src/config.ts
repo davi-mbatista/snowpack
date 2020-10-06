@@ -264,7 +264,7 @@ function loadPlugins(
     }
     plugin.name = plugin.name || name;
 
-    // Legacy support: Map the new load() interface to the old build() interface
+    // Legacy: Map the new load() interface to the old build() interface
     const {build, bundle} = plugin;
     if (build) {
       plugin.load = async (options: PluginLoadOptions) => {
@@ -289,8 +289,7 @@ function loadPlugins(
         return result.result;
       };
     }
-    // Legacy support: Map the new optimize() interface to the old bundle()
-    // interface
+    // Legacy: Map the new optimize() interface to the old bundle() interface
     if (bundle) {
       plugin.optimize = async (options: PluginOptimizeOptions) => {
         return bundle({
@@ -310,6 +309,8 @@ function loadPlugins(
         });
       };
     }
+
+    // Legacy: handle "defaultBuildScript" syntax
     if (
       !plugin.resolve &&
       plugin.defaultBuildScript &&
@@ -322,6 +323,15 @@ function loadPlugins(
       plugin.resolve = {input, output};
     }
 
+    // Add any internal plugin methods. Placeholders are okay when individual 
+    // commands implement these differently.
+    plugin.markChanged = (file) => {
+      logger.debug(`clearCache(${file}) called, but function not yet hooked up.`, {
+        name: plugin.name,
+      });
+    };
+
+    // Finish up.
     validatePlugin(plugin);
     return plugin;
   }

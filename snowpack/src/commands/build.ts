@@ -278,7 +278,16 @@ class FileBuilder {
 
 export async function command(commandOptions: CommandOptions) {
   const {config} = commandOptions;
-  const isWatch = !!config.buildOptions.watch;
+  const isDev = !!config.buildOptions.watch;
+
+  // Fill in any command-specific plugin methods.
+  // NOTE: markChanged only needed during dev, but may not be true for all.
+  if (isDev) {
+    for (const p of config.plugins) {
+      p.markChanged = (fileLoc) => onWatchEvent(fileLoc) || undefined;
+    }
+  }
+
 
   const buildDirectoryLoc = config.devOptions.out;
   const internalFilesBuildLoc = path.join(buildDirectoryLoc, config.buildOptions.metaDir);
@@ -293,7 +302,7 @@ export async function command(commandOptions: CommandOptions) {
     if (runPlugin.run) {
       const runJob = runPlugin
         .run({
-          isDev: isWatch,
+          isDev: isDev,
           isHmrEnabled: getIsHmrEnabled(config),
           // @ts-ignore: internal API only
           log: (msg, data: {msg: string} = {}) => {
@@ -304,12 +313,12 @@ export async function command(commandOptions: CommandOptions) {
         })
         .catch((err) => {
           logger.error(err.toString(), {name: runPlugin.name});
-          if (!isWatch) {
+          if (!isDev) {
             process.exit(1);
           }
         });
       // Wait for the job to complete before continuing (unless in watch mode)
-      if (!isWatch) {
+      if (!isDev) {
         await runJob;
       }
     }

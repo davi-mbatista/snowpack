@@ -248,19 +248,24 @@ const sendError = (req: http.IncomingMessage, res: http.ServerResponse, status: 
 };
 
 export async function startServer(commandOptions: CommandOptions) {
+  // Start the startup timer!
+  let serverStart = performance.now();
+
   const {cwd, config} = commandOptions;
   const {port: defaultPort, hostname, open} = config.devOptions;
   const isHmr = typeof config.devOptions.hmr !== 'undefined' ? config.devOptions.hmr : true;
-
-  // Start the startup timer!
-  let serverStart = performance.now();
+  const messageBus = new EventEmitter();
   const port = await getPort(defaultPort);
-  // Reset the clock if we had to wait for the user to select a new port.
+
+  // Reset the clock if we had to wait for the user prompt to select a new port.
   if (port !== defaultPort) {
     serverStart = performance.now();
   }
 
-  const messageBus = new EventEmitter();
+  // Fill in any command-specific plugin methods.
+  for (const p of config.plugins) {
+    p.markChanged = (fileLoc) => onWatchEvent(fileLoc) || undefined;
+  }
 
   // note: this would cause an infinite loop if not for the logger.on(…) in
   // `paint.ts`.
@@ -1067,6 +1072,9 @@ export async function startServer(commandOptions: CommandOptions) {
     inMemoryBuildCache.delete(fileLoc);
     filesBeingDeleted.add(fileLoc);
     await cacache.rm.entry(BUILD_CACHE, fileLoc);
+    for (const plugin of config.plugins) {
+      plugin.onChange && plugin.onChange({filePath: fileLoc});
+    }
     filesBeingDeleted.delete(fileLoc);
   }
   const watcher = chokidar.watch(Object.keys(config.mount), {
