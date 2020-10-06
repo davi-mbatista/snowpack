@@ -41,6 +41,7 @@ For starter apps and templates, see [create-snowpack-app](./create-snowpack-app)
 - [@snowpack/plugin-babel](./plugins/plugin-babel)
 - [@snowpack/plugin-svelte](./plugins/plugin-svelte)
 - [@snowpack/plugin-vue](./plugins/plugin-vue)
+- [@snowpack/plugin-sass](./plugins/plugin-sass)
 
 ### Transform
 
